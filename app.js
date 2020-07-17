@@ -5,15 +5,17 @@ const multer=require('multer')
 const { Pool,Client} =require('pg')
 const PORT = process.env.PORT || 5000
 let photopath;
+let email;
 
 
 
 const storage=multer.diskStorage({
     destination:'./public/upload',
     filename:function(req,file,cb){
-        cb(null,file.fieldname+'-'+Date.now()+path.extname(file.originalname));
+        cb(null,email+'-'+Date.now()+path.extname(file.originalname));
     }
 })
+
 
 
 const upload=multer({
@@ -29,7 +31,6 @@ app.use(express.static('./public'))
 
 
 const connectionString =(process.env.pg_URI ||"postgres://postgres:@Shyam02@localhost:5432")
-
 const client = new Client({
     connectionString:connectionString
 })
@@ -38,7 +39,7 @@ client.connect()
 
 //WHERE id = (SELECT MAX(id) FROM profile)
 app.get('/',(req,res)=>{
-    client.query("SELECT * FROM profile ",function(err,result){
+    client.query("SELECT * FROM profile WHERE id = (SELECT MAX(id) FROM profile)",function(err,result){
       if(err){
           return console.error('error running query',err);
       }
@@ -49,6 +50,7 @@ app.get('/',(req,res)=>{
 
 
 app.post("/api", (req, res) => {
+    email=req.body.email;
     client.query("INSERT INTO profile(name,email,photourl)values($1,$2,$3);",[req.body.name,req.body.email,req.body.photoUrl],function(err,result)
       {
         if(err)
@@ -57,6 +59,7 @@ app.post("/api", (req, res) => {
         }
     });
     })  
+
 
 
 app.post("/upload",(req,res)=>{
@@ -73,6 +76,7 @@ app.post("/upload",(req,res)=>{
 })
 
 
+
 app.post("/details", (req, res) => {
     console.log(photopath);
     client.query("INSERT INTO post(name,email,photourl,photopath)values($1,$2,$3,$4);",[req.body.name,req.body.email,req.body.photourl,photopath],function(err,result)
@@ -85,6 +89,7 @@ app.post("/details", (req, res) => {
     })
 
 
+
     app.get('/post',(req,res)=>{
         client.query("SELECT * FROM post order by id desc ",function(err,result){
           if(err){
@@ -93,6 +98,18 @@ app.post("/details", (req, res) => {
           res.send({post:result.rows})
     });
     })
+
+    
+
+app.get('/postDetails',(req,res)=>{
+    let photopaths=`%${email}%`
+    client.query("SELECT * FROM post WHERE photopath LIKE ($1)",[photopaths],function(err,result){
+        if(err){
+            return console.error('error running query',err);
+        }
+        res.send({post:result.rows})
+    })
+})
 
 
 
