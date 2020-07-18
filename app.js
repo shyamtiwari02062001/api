@@ -6,6 +6,7 @@ const { Pool,Client} =require('pg')
 const PORT = process.env.PORT || 5000
 let photopath;
 let email;
+let searchData;
 
 
 
@@ -113,4 +114,23 @@ app.get('/postDetails',(req,res)=>{
 
 
 
+app.post("/searchData", (req, res) => {
+   searchData=req.body.search;
+   console.log(searchData)
+    })
+
+
+    
+    app.get('/search',(req,res)=>{
+        let search=`%${searchData}%`
+        client.query("SELECT * FROM profile WHERE name LIKE ($1)  ",[search],function(err,result){
+            if(err){
+                return console.error('error running query',err);
+            }
+            res.send({profile:result.rows})
+        })
+    })
+    
+    
+    
     app.listen(PORT, () => console.log(`Listening on ${ PORT }`))
